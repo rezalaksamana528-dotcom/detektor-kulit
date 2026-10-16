@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Detektor Warna Kulit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Instrument+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#f6efe7;--card:#fffaf4;--ink:#2a1d14;--mute:#7a6556;--line:#e4d6c7;--acc:#a9551f;--onacc:#fff;--ok:#2f7d57;--warn:#b8741a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17100b;--card:#241a13;--ink:#f3e8dc;--mute:#a8927f;--line:#3a2b20;--acc:#e0a06a;--onacc:#1c1008;--ok:#6fd0a0;--warn:#e8b25c}}
+:root[data-theme="dark"]{--bg:#17100b;--card:#241a13;--ink:#f3e8dc;--mute:#a8927f;--line:#3a2b20;--acc:#e0a06a;--onacc:#1c1008;--ok:#6fd0a0;--warn:#e8b25c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:18px 16px 28px}
+h1{font:600 30px/1.1 Fraunces,Georgia,serif;margin:4px 0 6px}
+.sub{color:var(--mute);margin:0 0 16px}
+.stage{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4}
+canvas{display:block;width:100%;height:100%;object-fit:contain}
+.guide{position:absolute;left:28%;top:20%;width:44%;height:60%;border:2px dashed rgba(255,255,255,.65);border-radius:50%;pointer-events:none}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:#e9dccd}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.b{font:inherit;font-weight:600;padding:12px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-align:center;cursor:pointer;display:block}
+.b.p{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.b.w{grid-column:span 2}
+.b:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.res{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.top{display:flex;gap:14px;align-items:center}
+#sw{width:88px;height:88px;border-radius:14px;border:1px solid var(--line);background:var(--line);flex:none}
+#hex{font:600 26px/1 Fraunces,Georgia,serif}
+.m{color:var(--mute);font-size:14px;margin-top:6px}
+#lab{font:600 22px/1.2 Fraunces,Georgia,serif;margin:16px 0 4px}
+#vd{display:flex;gap:8px;align-items:center;font-weight:600}
+#vd i{width:10px;height:10px;border-radius:50%;background:var(--mute);flex:none}
+.bar{position:relative;height:16px;border-radius:8px;margin:22px 0 4px;background:linear-gradient(90deg,#69462d,#a06e46,#c69264,#e0b28c,#f0d0b4)}
+.bar b{position:absolute;top:-9px;width:0;height:0;margin-left:-7px;border:7px solid transparent;border-top:9px solid var(--ink);transition:left .25s}
+.ends{display:flex;justify-content:space-between;color:var(--mute);font-size:13px}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:6px}
+.meter div{height:100%;width:0;background:var(--acc);transition:width .25s}
+.note{color:var(--mute);font-size:13px;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Detektor warna kulit</h1>
+  <p class="sub">Cek tone kulit sawo matang dan cerah.</p>
+
+  <div class="stage">
+    <canvas id="cv" width="420" height="560"></canvas>
+    <div class="guide" id="guide"></div>
+    <div id="msg">Nyalakan kamera atau ambil foto. Posisikan wajah di dalam oval.</div>
+  </div>
+
+  <div class="btns">
+    <button class="b p" id="bCam">Nyalakan kamera</button>
+    <label class="b">Ambil foto<input id="fCap" type="file" accept="image/*" capture="user" hidden></label>
+    <label class="b">Pilih dari galeri<input id="fGal" type="file" accept="image/*" hidden></label>
+    <button class="b" id="bMask">Tampilan: overlay</button>
+    <button class="b w" id="bMode">Area ukur: oval tengah</button>
+  </div>
+
+  <section class="res" aria-live="polite">
+    <div class="top">
+      <div id="sw"></div>
+      <div>
+        <div id="hex">-</div>
+        <div class="m" id="rgb">Belum ada kulit terdeteksi</div>
+        <div class="m" id="ita"></div>
+      </div>
+    </div>
+    <div id="lab"></div>
+    <div id="vd"><i></i><span></span></div>
+    <div class="bar"><b id="mk" style="left:50%"></b></div>
+    <div class="ends"><span>Gelap</span><span>Cerah</span></div>
+    <div class="m" style="margin-top:16px">Area kulit di gambar: <span id="pct">0</span>%</div>
+    <div class="meter"><div id="mt"></div></div>
+  </section>
+  <p class="note">Semua diproses di perangkatmu, tidak ada gambar yang diunggah. Hasil dipengaruhi cahaya dan kamera. Alat ini mengukur warna kulit pada gambar, bukan menentukan ras atau etnis.</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), cx = cv.getContext('2d', { willReadFrequently: true });
+const vid = document.createElement('video'); vid.playsInline = true; vid.muted = true;
+let stream = null, facing = 'user', mode = 'oval', showMask = false, src = null, ema = null, last = 0;
+const KAT = [[41, 'Cerah / Putih'], [28, 'Kuning Langsat'], [10, 'Sawo Matang Terang'], [-30, 'Sawo Matang'], [-999, 'Coklat Tua / Gelap']];
+const kat = i => (KAT.find(k => i > k[0]) || KAT[4])[1];
+
+function ita(r, g, b) {
+  const f = c => { c /= 255; return c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); };
+  const R = f(r), G = f(g), B = f(b);
+  const X = (R * .4124 + G * .3576 + B * .1805) / .95047, Y = R * .2126 + G * .7152 + B * .0722, Z = (R * .0193 + G * .1192 + B * .9505) / 1.08883;
+  const t = v => v > .008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116;
+  const L = 116 * t(Y) - 16, bb = 200 * (t(Y) - t(Z));
+  return Math.atan2(L - 50, Math.abs(bb) < 1e-3 ? 1e-3 : bb) * 180 / Math.PI;
+}
+const med = h => { let tot = 0; for (const v of h) tot += v; let c = 0; for (let i = 0; i < 256; i++) { c += h[i]; if (c >= tot / 2) return i; } return 0; };
+
+function analyze() {
+  const w = cv.width, h = cv.height, img = cx.getImageData(0, 0, w, h), d = img.data;
+  const H3 = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  let n = 0, roi = 0;
+  const mx0 = w / 2, my0 = h / 2, rx = w * .22, ry = h * .3;
+  for (let p = 0, y = 0; y < h; y++) for (let x = 0; x < w; x++, p += 4) {
+    const r = d[p], g = d[p + 1], b = d[p + 2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), df = mx - mn;
+    let hh = 0;
+    if (df) { hh = mx === r ? ((g - b) / df + 6) % 6 : mx === g ? (b - r) / df + 2 : (r - g) / df + 4; hh *= 30; }
+    const s = mx ? df / mx * 255 : 0;
+    const Y = .299 * r + .587 * g + .114 * b, Cr = (r - Y) * .713 + 128, Cb = (b - Y) * .564 + 128;
+    if (hh <= 25 && s >= 25 && s <= 190 && mx >= 40 && Cr >= 135 && Cr <= 180 && Cb >= 85 && Cb <= 135) {
+      n++;
+      const dx = (x - mx0) / rx, dy = (y - my0) / ry;
+      if (mode === 'full' || dx * dx + dy * dy <= 1) { H3[0][r]++; H3[1][g]++; H3[2][b]++; roi++; }
+      if (showMask) d[p] = d[p + 1] = d[p + 2] = 255;
+      else { d[p] = r * .5 + 45; d[p + 1] = g * .5 + 110; d[p + 2] = b * .5 + 85; }
+    } else if (showMask) d[p] = d[p + 1] = d[p + 2] = 20;
+  }
+  cx.putImageData(img, 0, 0);
+  show(roi >= 120 ? [med(H3[0]), med(H3[1]), med(H3[2])] : null, n / (w * h));
+}
+
+function show(rgb, ratio) {
+  $('pct').textContent = (ratio * 100).toFixed(1); $('mt').style.width = Math.min(ratio * 150, 100) + '%';
+  if (!rgb) { ema = null; $('hex').textContent = '-'; $('sw').style.background = ''; $('rgb').textContent = 'Kulit tidak terdeteksi. Dekatkan wajah dan cari cahaya lebih terang.'; $('ita').textContent = ''; $('lab').textContent = ''; $('vd').lastChild.textContent = ''; return; }
+  ema = ema ? ema.map((v, i) => v * .7 + rgb[i] * .3) : rgb;
+  const [r, g, b] = ema.map(Math.round), a = ita(r, g, b), ok = a > -30 && a <= 28;
+  const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+  $('sw').style.background = hex; $('hex').textContent = hex;
+  $('rgb').textContent = `R ${r}  G ${g}  B ${b}`; $('ita').textContent = `ITA ${a.toFixed(1)}°`;
+  $('lab').textContent = kat(a);
+  $('vd').firstChild.style.background = ok ? 'var(--ok)' : 'var(--warn)';
+  $('vd').lastChild.textContent = ok ? 'Masuk rentang sawo matang / coklat' : 'Di luar rentang sawo matang';
+  $('mk').style.left = Math.min(Math.max((a + 50) / 110, 0), 1) * 100 + '%';
+}
+
+function draw(el, live) {
+  const sw = el.videoWidth || el.naturalWidth, sh = el.videoHeight || el.naturalHeight;
+  if (!sw) return;
+  const W = 420, Hh = Math.round(W * sh / sw);
+  if (cv.width !== W || cv.height !== Hh) { cv.width = W; cv.height = Hh; }
+  cx.save();
+  if (live && facing === 'user') { cx.translate(W, 0); cx.scale(-1, 1); }
+  cx.drawImage(el, 0, 0, W, Hh); cx.restore();
+  analyze();
+}
+
+function tick(t) {
+  requestAnimationFrame(tick);
+  if (!stream || vid.readyState < 2 || t - last < 80) return;
+  last = t; draw(vid, true);
+}
+requestAnimationFrame(tick);
+
+function stopCam() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; }
+async function startCam() {
+  stopCam(); src = null; ema = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 640 } }, audio: false });
+    vid.srcObject = stream; await vid.play();
+    $('msg').hidden = true; $('bCam').textContent = 'Balik kamera';
+  } catch (e) {
+    $('msg').hidden = false;
+    const framed = window.self !== window.top;
+    $('msg').textContent = (framed ? 'Halaman ini tampil di dalam bingkai (iframe), jadi kamera diblokir. Buka lewat alamat https sebagai halaman penuh. ' : 'Kamera tidak bisa dibuka. Izinkan akses kamera di pengaturan browser. ') + '(' + ((e && e.name) || 'error') + ') Sementara itu, pakai Ambil foto.';
+  }
+}
+$('bCam').onclick = () => { if (stream) facing = facing === 'user' ? 'environment' : 'user'; startCam(); };
+
+function onFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  stopCam(); ema = null;
+  const im = new Image();
+  im.onload = () => { src = im; $('msg').hidden = true; draw(im, false); };
+  im.src = URL.createObjectURL(f); e.target.value = '';
+}
+$('fCap').onchange = onFile; $('fGal').onchange = onFile;
+
+const redo = () => { if (src) draw(src, false); };
+$('bMask').onclick = () => { showMask = !showMask; $('bMask').textContent = 'Tampilan: ' + (showMask ? 'mask' : 'overlay'); redo(); };
+$('bMode').onclick = () => {
+  mode = mode === 'oval' ? 'full' : 'oval';
+  $('bMode').textContent = 'Area ukur: ' + (mode === 'oval' ? 'oval tengah' : 'seluruh gambar');
+  $('guide').style.display = mode === 'oval' ? '' : 'none'; redo();
+};
+</script>
+</body>
+</html>
